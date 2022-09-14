@@ -7,8 +7,6 @@
 // How to do-not-track in-waiting and exp?
 /////////////////////
 
-console.log("Hiiiii")
-
 const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -19,7 +17,8 @@ class Paddle {
         x: 150,
         y: 30
     };
-    velocity = 7;
+    velocity = 0;
+    maxVelocity = 3;
 
     constructor(side, canvasWidth, canvasHeight) {
         this.y = canvasHeight / 2 - this.height / 2;
@@ -35,18 +34,21 @@ class Paddle {
         this.draw();
     }
 
+    up() {
+        this.velocity = this.maxVelocity * -1;
+    }
+
+    down() {
+        this.velocity = this.maxVelocity;
+    }
+
     draw() {
         ctx.fillStyle = "white";
         ctx.fillRect(this.x, this.y, this.width, this.height);
     }
 
-    move(arg) {
-        if (arg === "up") {
-            this.y -= this.velocity;
-        }
-        if (arg === "down") {
-            this.y += this.velocity;
-        }
+    update() {
+        this.y += this.velocity;
     }
 
     get width() {
@@ -58,8 +60,8 @@ class Ball {
     width = 20;
     height = 20;
     velocity = {
-        x: 20,
-        y: 20
+        x: (Math.random()-.5) * 5,
+        y: (Math.random()-.5) * .8
     }
 
     constructor(side) {
@@ -73,7 +75,7 @@ class Ball {
         ctx.fillRect(this.x, this.y, this.width, this.height);
     }
 
-    move() {
+    update() {
         this.x += this.velocity.x;
         this.y += this.velocity.y;
     }
@@ -121,9 +123,15 @@ class Game {
         this.paddleLeft = new Paddle("left", canvas.width, canvas.height);
         this.paddleRight = new Paddle("right", canvas.width, canvas.height);
         this.ball = new Ball();
-        this.gameLoop = new GameLoop();
     }
-    
+
+    update() {
+        this.paddleRight.update();
+        this.paddleLeft.update();
+        this.ball.update()
+        this.draw()
+    }
+
     draw() {
         this.gameBoard.drawBackground();
         this.paddleLeft.draw();
@@ -131,19 +139,25 @@ class Game {
         this.ball.draw();
     }
 
-    processInput(arg) {
-        if (arg === "ArrowUp") {
-            this.paddleRight.move("up");
-        }
-        if (arg === "ArrowDown") {
-            this.paddleRight.move("down");
-        }
-        if (arg === "KeyW") {
-            this.paddleLeft.move("up");
-        }
-        if (arg === "KeyS") {
-            this.paddleLeft.move("down");
-        }
+    keybinds = {
+        "ArrowUp": [
+            () => {this.paddleRight.up()}, 
+            () => {this.paddleRight.velocity = 0;}],
+        "ArrowDown": [
+            () => {this.paddleRight.down()},
+            () => {this.paddleRight.velocity = 0;}],
+        "KeyW": [
+            () => {this.paddleLeft.up()}, 
+            () => {this.paddleLeft.velocity = 0; console.log(this.paddleLeft.velocity)}],
+        "KeyS": [
+            () => {this.paddleLeft.down()}, 
+            () => {this.paddleLeft.velocity = 0;}],
+    }   
+
+    animate = () => {
+        requestAnimationFrame(this.animate)
+        this.update();
+        this.draw();
     }
 }
 
@@ -154,27 +168,15 @@ main();
 function main() {
     const game = new Game();
     console.log(game);
+    game.animate();
     addEventListener("keydown", (e) => {
         console.log(`Keydown: ${e.code}`);
-        game.processInput(e.code);
-        game.draw();
+        game.keybinds[e.code][0]()
     })
-}
-
-function GameLoop() {
-    processInput();
-    updateGame();
-    render();
-}
-
-function processInput() {
-    console.log("Process input")
-}
-function updateGame() {
-    console.log("Update game")
-}
-function render() {
-    console.log("Render")
+    addEventListener("keyup", (e) => {
+        console.log(`Keyup: ${e.code}`);
+        game.keybinds[e.code][1]()
+    })
 }
 
 ///////////////////////////
